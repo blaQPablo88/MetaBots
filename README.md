@@ -145,17 +145,4 @@ Use in a demo environment before applying to live accounts.
 MQL4 Developer & Automation Enthusiast  
 GitHub: *your profile link*
 
----
-
-## 📬 Want help improving the bots?
-
-If you want to:
-
-- rewrite these into **OOP-style MQL4**
-- add trailing stop systems  
-- add dashboards  
-- add logging  
-- port to **MQL5**
-
-Just let me know — I can help add them to the repo.
 
