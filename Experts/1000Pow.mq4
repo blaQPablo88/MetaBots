@@ -1,76 +1,146 @@
+//+------------------------------------------------------------------+
+//| Expert Advisor properties                                        |
+//+------------------------------------------------------------------+
+#property copyright "Kagiso Mogotsi"
+#property version   "1.04"
+#property strict
 
-void OnTick() 
+extern int    MagicNumber      = 123456;     // Unique ID for your orders
+extern double MaxOrders        = 50;         // Much safer than 170
+extern bool   TradeOnNewBar    = true;       // Highly recommended
+
+// Symbol list - easy to maintain
+string BuySymbols[]  = {"EURUSDm","GBPUSDm","NZDUSDm","AUDUSDm","DXYm"};
+string SellSymbols[] = {"USDCADm","USDCHFm","USDJPYm","USDSEKm"};
+
+double BuyLots  = 0.06;
+double SellLots = 0.04;
+
+// SL/TP in points (will be converted correctly per symbol)
+int BuySL_Points   = 300;
+int BuyTP_Points   = 70;
+int SellSL_Points  = 250;
+int SellTP_Points  = 85;
+
+//+------------------------------------------------------------------+
+//| Helper: Safe OrderSend with error handling                       |
+//+------------------------------------------------------------------+
+int SafeOrderSend(string symbol, int cmd, double volume, double price,
+                  int slippage, double sl, double tp, string comment="")
+{
+   if(volume <= 0) return -1;
+   
+   // Ensure symbol is in Market Watch
+   if(SymbolInfoInteger(symbol, SYMBOL_SELECT) == false)
+      if(!SymbolSelect(symbol, true))
+      {
+         Print("Failed to select symbol: ", symbol);
+         return -1;
+      }
+   
+   double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
+   int    digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
+   
+   // Normalize everything
+   price = NormalizeDouble(price, digits);
+   sl    = (sl > 0)    ? NormalizeDouble(sl, digits)    : 0;
+   tp    = (tp > 0)    ? NormalizeDouble(tp, digits)    : 0;
+   volume = NormalizeDouble(volume, 2);   // most brokers use 2 decimals for lots
+   
+   int ticket = OrderSend(symbol, cmd, volume, price, slippage, sl, tp, comment, MagicNumber, 0, 
+                          (cmd==OP_BUY || cmd==OP_BUYSTOP)? clrGreen : clrRed);
+   
+   if(ticket < 0)
    {
-     double movingAverage =iMA(Symbol(),0,15,0,MODE_SMA,PRICE_MEDIAN,0);
-     double currentPrice = Open[0];
-     double lastPrice = Open[1];
-      
-     
-     
-     //calculate ask price 
-     double Ask = NormalizeDouble(SymbolInfoDouble(Symbol(),SYMBOL_ASK),Digits);
-     double EURUSDmAsk = NormalizeDouble(SymbolInfoDouble("EURUSDm",SYMBOL_ASK),_Digits);
-     double GBPUSDmAsk = NormalizeDouble(SymbolInfoDouble("GBPUSDm",SYMBOL_ASK),_Digits);
-     double NZDUSDmAsk = NormalizeDouble(SymbolInfoDouble("NZDUSDm",SYMBOL_ASK),_Digits);
-     double AUDUSDmAsk = NormalizeDouble(SymbolInfoDouble("AUDUSDm",SYMBOL_ASK),_Digits);
-     double USDCADmAsk = NormalizeDouble(SymbolInfoDouble("USDCADm",SYMBOL_ASK),_Digits);
-     double USDCHFmAsk = NormalizeDouble(SymbolInfoDouble("USDCHFm",SYMBOL_ASK),_Digits);
-     double USDJPYmAsk = NormalizeDouble(SymbolInfoDouble("USDJPYm",SYMBOL_ASK),_Digits);
-     double USDSEKmAsk = NormalizeDouble(SymbolInfoDouble("USDSEKm",SYMBOL_ASK),_Digits);
-     double DXYmAsk = NormalizeDouble(SymbolInfoDouble("DXYm",SYMBOL_ASK),_Digits);   
-     //calculate bid price
-     double Bid = NormalizeDouble(SymbolInfoDouble(Symbol(),SYMBOL_BID),Digits);
-     double EURUSDmBid = NormalizeDouble(SymbolInfoDouble("EURUSDm",SYMBOL_BID),Digits);
-     double GBPUSDmBid = NormalizeDouble(SymbolInfoDouble("GBPUSDm",SYMBOL_BID),Digits);
-     double NZDUSDmBid = NormalizeDouble(SymbolInfoDouble("NZDUSDm",SYMBOL_BID),Digits);
-     double AUDUSDmBid = NormalizeDouble(SymbolInfoDouble("AUDUSDm",SYMBOL_BID),Digits);
-     double USDCADmBid = NormalizeDouble(SymbolInfoDouble("USDCADm",SYMBOL_BID),Digits);
-     double USDCHFmBid = NormalizeDouble(SymbolInfoDouble("USDCHFm",SYMBOL_BID),Digits);
-     double USDJPYmBid = NormalizeDouble(SymbolInfoDouble("USDJPYm",SYMBOL_BID),Digits);
-     double USDSEKmBid = NormalizeDouble(SymbolInfoDouble("USDSEKm",SYMBOL_BID),Digits); 
-     double DXYmBid = NormalizeDouble(SymbolInfoDouble("DXYm",SYMBOL_BID),Digits);
-      
-     //buying
-     if (OrdersTotal()<170) 
-     {
-        if ((currentPrice < movingAverage) && (currentPrice > lastPrice)) 
-        {
-          //OrderSend (Symbol(),OP_SELL,0.04,Bid,3,0,Bid-150*Point,NULL,0,0,Red);
-           OrderSend ("USDCADm",OP_SELL,0.04,USDCADmBid,3,USDCADmBid+250*Point,USDCADmBid-85*Point,NULL,0,0,Red);
-           OrderSend ("USDCHFm",OP_SELL,0.04,USDCHFmBid,3,USDCHFmBid+250*Point,USDCHFmBid-85*Point,NULL,0,0,Red);
-           OrderSend ("USDJPYm",OP_SELL,0.04,USDJPYmBid,3,USDJPYmBid+250*Point,USDJPYmBid-85*Point,NULL,0,0,Red);
-           OrderSend ("USDSEKm",OP_SELL,0.04,USDSEKmBid,3,USDSEKmBid+250*Point,USDSEKmBid-85*Point,NULL,0,0,Red);
-           OrderSend ("EURUSDm",OP_BUY,0.06,EURUSDmAsk,3,EURUSDmAsk-300*Point,EURUSDmAsk+70*Point,NULL,0,0,Green);
-           OrderSend ("GBPUSDm",OP_BUY,0.06,GBPUSDmAsk,3,GBPUSDmAsk-300*Point,GBPUSDmAsk+70*Point,NULL,0,0,Green);
-           OrderSend ("NZDUSDm",OP_BUY,0.06,NZDUSDmAsk,3,NZDUSDmAsk-300*Point,NZDUSDmAsk+70*Point,NULL,0,0,Green);
-           OrderSend ("AUDUSDm",OP_BUY,0.06,AUDUSDmAsk,3,AUDUSDmAsk-300*Point,AUDUSDmAsk+70*Point,NULL,0,0,Green);
-           OrderSend ("DXY",OP_BUY,0.06,DXYmAsk,3,DXYmAsk-300*Point,DXYmAsk+70*Point,NULL,0,0,Green);
-           
-           
-        }  
-     }        
-                                                                               
-                                                                                          
-     //selling                             
-     if (OrdersTotal()<170) 
-     {
-        if ((currentPrice > movingAverage) && (currentPrice < lastPrice)) 
-        {                                                              
-           //OrderSend (Symbol(),OP_BUY,0.00,Ask,3,0,Ask+150*Point,NULL,0,0,Green); 
-           OrderSend ("USDCADm",OP_BUY,0.04,USDCADmAsk,3,USDCADmBid-250*Point,USDCADmAsk+85*Point,NULL,0,0,Green);
-           OrderSend ("USDCHFm",OP_BUY,0.04,USDCHFmAsk,3,USDCADmBid-250*Point,USDCHFmAsk+85*Point,NULL,0,0,Green);
-           OrderSend ("USDJPYm",OP_BUY,0.04,USDJPYmAsk,3,USDCADmBid-250*Point,USDJPYmAsk+85*Point,NULL,0,0,Green);
-           OrderSend ("USDSEKm",OP_BUY,0.04,USDSEKmAsk,3,USDCADmBid-250*Point,USDSEKmAsk+85*Point,NULL,0,0,Green);
-           OrderSend ("EURUSDm",OP_SELL,0.06,EURUSDmBid,3,EURUSDmBid+300*Point,EURUSDmBid-90*Point,NULL,0,0,Red);
-           OrderSend ("GBPUSDm",OP_SELL,0.06,GBPUSDmBid,3,GBPUSDmBid+300*Point,GBPUSDmBid-90*Point,NULL,0,0,Red);
-           OrderSend ("NZDUSDm",OP_SELL,0.06,NZDUSDmBid,3,NZDUSDmBid+300*Point,NZDUSDmBid-90*Point,NULL,0,0,Red);
-           OrderSend ("AUDUSDm",OP_SELL,0.06,AUDUSDmBid,3,AUDUSDmBid+300*Point,AUDUSDmBid-90*Point,NULL,0,0,Red);
-           OrderSend ("DXYm",OP_SELL,0.06,DXYmBid,3,DXYmBid+300*Point,DXYmBid-90*Point,NULL,0,0,Red);    
-        }    
-     }                                               
-          
-       
-    Alert(GetLastError());
+      int err = GetLastError();
+      Print("OrderSend failed | Symbol=", symbol, " | Cmd=", cmd, " | Error=", err, " | ", ErrorDescription(err));
+   }
+   else
+      Print("Order opened successfully | Ticket=", ticket, " | Symbol=", symbol);
+   
+   return ticket;
+}
 
-
+//+------------------------------------------------------------------+
+//| OnTick                                                           |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+   static datetime lastBarTime = 0;
+   
+   // === Trade only on new bar (prevents spam) ===
+   if(TradeOnNewBar)
+   {
+      datetime currentBarTime = Time[0];
+      if(currentBarTime == lastBarTime) return;
+      lastBarTime = currentBarTime;
+   }
+   
+   if(OrdersTotal() >= MaxOrders) return;   // Global limit
+   
+   // --- Indicators & Prices ---
+   double ma = iMA(Symbol(), 0, 15, 0, MODE_SMA, PRICE_MEDIAN, 0);
+   
+   double currentPrice = Close[0];   // Better than Open[0] for current price
+   double lastPrice    = Close[1];
+   
+   // --- BUYING CONDITION (price below MA and rising) ---
+   if(currentPrice < ma && currentPrice > lastPrice)
+   {
+      // Sell the "strong USD" pairs
+      for(int i=0; i<ArraySize(SellSymbols); i++)
+      {
+         string sym = SellSymbols[i];
+         double bid = SymbolInfoDouble(sym, SYMBOL_BID);
+         double point = SymbolInfoDouble(sym, SYMBOL_POINT);
+         
+         SafeOrderSend(sym, OP_SELL, SellLots, bid, 3,
+                       bid + SellSL_Points * point,
+                       bid - SellTP_Points * point,
+                       "Sell USD");
+      }
+      
+      // Buy the "weak USD" pairs
+      for(int i=0; i<ArraySize(BuySymbols); i++)
+      {
+         string sym = BuySymbols[i];
+         double ask = SymbolInfoDouble(sym, SYMBOL_ASK);
+         double point = SymbolInfoDouble(sym, SYMBOL_POINT);
+         
+         SafeOrderSend(sym, OP_BUY, BuyLots, ask, 3,
+                       ask - BuySL_Points * point,
+                       ask + BuyTP_Points * point,
+                       "Buy vs USD");
+      }
+   }
+   
+   // --- SELLING CONDITION (price above MA and falling) ---
+   if(currentPrice > ma && currentPrice < lastPrice)
+   {
+      // Buy the "strong USD" pairs
+      for(int i=0; i<ArraySize(SellSymbols); i++)
+      {
+         string sym = SellSymbols[i];
+         double ask = SymbolInfoDouble(sym, SYMBOL_ASK);
+         double point = SymbolInfoDouble(sym, SYMBOL_POINT);
+         
+         SafeOrderSend(sym, OP_BUY, SellLots, ask, 3,
+                       ask - SellSL_Points * point,     // corrected logic
+                       ask + SellTP_Points * point,
+                       "Buy USD");
+      }
+      
+      // Sell the "weak USD" pairs
+      for(int i=0; i<ArraySize(BuySymbols); i++)
+      {
+         string sym = BuySymbols[i];
+         double bid = SymbolInfoDouble(sym, SYMBOL_BID);
+         double point = SymbolInfoDouble(sym, SYMBOL_POINT);
+         
+         SafeOrderSend(sym, OP_SELL, BuyLots, bid, 3,
+                       bid + BuySL_Points * point,
+                       bid - BuyTP_Points * point,      // note: you had -90 before
+                       "Sell vs USD");
+      }
+   }
 }
