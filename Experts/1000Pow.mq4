@@ -1,7 +1,7 @@
 //+------------------------------------------------------------------+
 //| Expert Advisor properties                                        |
 //+------------------------------------------------------------------+
-#property copyright "Kagiso Mogotsi"
+#property copyright "Ruggggalllll Bernstttteiiin"
 #property version   "1.04"
 #property strict
 
