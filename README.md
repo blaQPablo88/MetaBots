@@ -1,148 +1,129 @@
-# MetaBots – MQL4 Expert Advisors Collection
+# MetaBots – Professional MQL4 Expert Advisors
 
-MetaBots is a collection of custom-built **MetaTrader 4 Expert Advisors (EAs)** and **utility scripts** designed to automate trading actions, manage positions, and execute strategy logic across forex pairs.  
-This repository contains multiple MQL4 bots I’ve built over time, including:
+![MetaTrader 4](https://img.shields.io/badge/MetaTrader-4-blue.svg)
+![MQL4](https://img.shields.io/badge/Language-MQL4-orange.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-- **1-Click Close EA** – Close all market + pending orders with a single chart button  
-- **Momentum Multi-Pair Trader** – Strategy using price action relative to a moving average  
-- **Multi-Pair Cross-Trend Trader** – Multi-symbol MA-based system  
-- **Advanced Risk-Managed EA** *(Trickerless 7.22-style)* – Dynamic lot sizing, safety exits, trend detection, ATR/ADX filtering, and calendar-based control
+**MetaBots** is a collection of clean, safe, and actively maintained **MetaTrader 4 Expert Advisors (EAs)** and utilities focused on multi-pair forex trading.
 
----
+All EAs have been refactored with modern MQL4 best practices:
+- `#property strict`
+- Safe order handling and error logging
+- Magic Number-based order management
+- New-bar filtering to prevent spam
+- Reusable helper functions
+- **Integrated emergency 1-Click Close button**
 
-## 📁 **Included Bots**
-
----
-
-## ### **1. 1-Click Close EA (`1 click close.mq4`)**
-
-A utility EA that creates a **button on the chart** that instantly:
-
-- closes all **market orders**
-- deletes all **pending orders**
-- retries automatically if price changes or spreads cause temporary errors
-- handles errors like:
-  - invalid price (129)
-  - requotes (135)
-  - off quotes (136)
-  - trade context busy (146)
-
-### **Features**
-- Chart button: **“Close Market Orders and Delete Pending Orders”**
-- Cleans everything with one click  
-- Safe retry logic  
-- Supports Magic Number filtering
 
 ---
 
-## ### **2. Multi-Pair Moving Average Strategy EA**
+## 🚀 Main Expert Advisor
 
-This EA trades multiple pairs (EURUSDc, GBPUSDc, NZDUSDc, AUDUSDc) using:
+### **Momentum Multi-Pair Trader with Emergency Close** (Recommended)
 
-- 15-period SMA  
-- Price crossover logic  
-- Momentum detection using previous candle  
-- Auto Buy/Sell based on **current price vs MA** and **current vs last price**  
-- Position cap (max 7 open orders)
+**Strategy Overview**  
+- Uses 15-period SMA of median price + price action (rising/falling).  
+- Trades two groups of symbols:  
+  - **Weak USD pairs** (`EURUSDm`, `GBPUSDm`, `NZDUSDm`, `AUDUSDm`)  
+  - **Strong USD pairs** (`USDCADm`, `USDCHFm`, `USDJPYm`, `USDSEKm`)  
 
-### Logic:
-**Buy when:**
-- `currentPrice < movingAverage`
-- `currentPrice < lastPrice`
+**Key Features**  
+- Trades only on new bar (no order spam).  
+- Proper per-symbol `_Point` and `_Digits` handling (safe for JPY pairs).  
+- **Large red emergency button** on the chart: **"🚨 CLOSE ALL ORDERS & PENDINGS"**.  
+- Button safely closes market orders and deletes pending orders with retry logic for common errors (129, 135, 136, 146).  
+- Filters by Magic Number (set to `0` to close everything on the account).  
+- Full logging and error handling.
 
-**Sell when:**
-- `currentPrice > movingAverage`
-- `currentPrice > lastPrice`
-
----
-
-## ### **3. Multi-Pair Trend-Aligned Grid EA (Expanded Version)**
-
-An expanded version that includes DXY and sends trades across five symbols:
-
-- **EURUSDc**
-- **GBPUSDc**
-- **NZDUSDc**
-- **AUDUSDc**
-- **DXYc**
-
-### Features
-- Max 8 orders  
-- Direction determined by SMA and price movement  
-- Static TP/SL based on points  
-- Very lightweight trend-following engine
+**Button Location**  
+Top-right corner of the chart. Click once to trigger emergency close.
 
 ---
 
-## ### **4. Advanced Risk-Managed EA (Trickerless-style system)**
+## Other Included / Planned EAs
 
-A highly configurable EA focusing on:
-
-### **Risk Controls**
-- Safe spread check  
-- Daily growth limits  
-- Relative stop logic  
-- Profit locking & basket profit control  
-- Margin-aware lot sizing  
-- Backup lots & news-lots  
-- ATR-based dynamic slippage  
-- ADX trend detection  
-- MA cross confirmation  
-- Hedge permissions  
-- Calendar-based pause logic  
-- Daily refresh & news window filters
-
-### **Built-in Parameters**
-- **Safety Controls**  
-- **Trade Limits**  
-- **Growth Constraints**  
-- **Profit & Stop Management**  
-- **Indicator Filters (ATR, ADX, MA)**  
-- **Margin Management**  
-- **History-based logic**  
-- **Back-system triggers**
-
-This EA is designed for more advanced portfolio-level management.
+- **Standalone 1-Click Close** – Original button-only utility.  
+- **Advanced Risk-Managed EA** (Trickerless-style) – Dynamic lots, ATR/ADX, news filter, etc. (refactoring in progress).  
+- **Trend with DXY Confirmation** – Upcoming version where DXY is used strictly as a filter (not traded).
 
 ---
 
-## 🚀 Installation
+## ⚙️ Installation
 
-1. Open **MetaTrader 4**
-2. Go to:  
-   **File → Open Data Folder**
-3. Navigate to:  
-   `MQL4/Experts`
-4. Copy the `.mq4` files into that folder
-5. Restart MT4 or refresh the Navigator panel
-6. Attach the EA to any chart you want to run it on
+1. Download or clone the repository.
+2. Open MetaTrader 4 → **File → Open Data Folder**.
+3. Copy `.mq4` files from `Experts/` into `MQL4/Experts`.
+4. Restart MetaTrader 4 or refresh the Navigator panel.
+5. Attach **MomentumWithEmergencyClose.mq4** to any chart (preferably a major pair or DXYm).
+6. Adjust inputs (MagicNumber, lot sizes, SL/TP, MaxOrders) as needed.
 
----
-
-## 🧪 Backtesting
-
-1. Open **Strategy Tester**  
-2. Select an EA from the MetaBots list  
-3. Choose symbol + timeframe  
-4. Configure spread and modelling quality  
-5. Click **Start**
-
-For best accuracy, use **tick data** (e.g., Dukascopy import via TickStory / Tick Data Suite).
+**Important:** Ensure all "m" suffix symbols (e.g. `EURUSDm`) are added to **Market Watch**.
 
 ---
 
-## ⚠️ Disclaimer
+## ⚠️ Risk Warning & Recommendations
 
-These Expert Advisors are shared **for educational and research purposes**.  
-Past performance does not guarantee future results.  
-Use in a demo environment before applying to live accounts.
+- **Always test on a demo account** for at least 4–8 weeks before going live.  
+- Start with small lot sizes (0.01 – 0.04).  
+- The emergency close button is your safety net — keep the EA attached to at least one chart.  
+- Never risk more than 1–2% of your account per trade.  
+- Use high-quality tick data for backtesting.  
+- **Trading involves substantial risk of loss.** Past performance ≠ future results.
+
+---
+
+## 🔧 Common Input Parameters
+
+| Parameter          | Default   | Description |
+|--------------------|-----------|-----------|
+| `MagicNumber`      | 123456    | Unique ID for this EA's orders (0 = affect all orders) |
+| `MaxOrders`        | 50        | Maximum total open orders allowed |
+| `TradeOnNewBar`    | true      | Prevent multiple entries per candle |
+| `WeakLots`         | 0.06      | Lot size for weak-USD buys |
+| `StrongLots`       | 0.04      | Lot size for strong-USD sells |
+| `WeakBuy_SL_Points`| 300       | Stop Loss for weak-USD buys |
+| `WeakBuy_TP_Points`| 70        | Take Profit for weak-USD buys |
+| `StrongSell_SL_Points` | 250   | Stop Loss for strong-USD sells |
+| `StrongSell_TP_Points` | 85    | Take Profit for strong-USD sells |
+
+---
+
+## 📘 Documentation
+
+- Full parameter explanations and strategy rules → `Users_manual.pdf`
+- Older notes → `instructions.txt`
+
+---
+
+## 🛠️ Planned Improvements
+
+- DXY used strictly as confirmation filter (no trading DXY)
+- Dynamic lot sizing based on account risk %
+- London / New York session filter
+- Trailing stop & breakeven functionality
+- Reusable `include/` files (`TradeUtils.mqh`, `SymbolGroups.mqh`, etc.)
+- Push/email notifications on emergency close
 
 ---
 
 ## 👤 Author
 
-**Kagiso**  
-MQL4 Developer & Automation Enthusiast  
-GitHub: *your profile link*
+**blaQPablo88** 
+MQL4 Developer & Forex Automation Enthusiast  
 
+GitHub: [blaQPablo88](https://github.com/blaQPablo88/MetaBots)
 
+---
+
+## 📜 License
+
+This project is licensed under the **MIT License** – free to use, modify, and distribute with attribution.
+
+---
+
+**Thank you for using MetaBots!**  
+The emergency close button gives you peace of mind during volatile moves.  
+
+If you need further customizations (DXY filter, dynamic lots, etc.), feel free to open an issue or contact me.
+
+**Trade safe!** 🚀

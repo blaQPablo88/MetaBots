@@ -1,64 +1,116 @@
 //+------------------------------------------------------------------+
-//| Expert Advisor properties                                        |
+//|     Momentum Multi-Pair + Emergency Close + DXY Confirmation     |
+//|                  Version 1.06                                    |
 //+------------------------------------------------------------------+
-#property copyright "Kagiso Mogotsi"
-#property version   "1.04"
+#property copyright "Ruggggalllll Bernstttteiii"
+#property link      "https://github.com/blaQPablo88/MetaBots"
+#property version   "1.06"
 #property strict
 
-extern int    MagicNumber      = 123456;     // Unique ID for your orders
-extern double MaxOrders        = 50;         // Much safer than 170
-extern bool   TradeOnNewBar    = true;       // Highly recommended
+#include <SymbolGroups.mqh>
 
-// Symbol list - easy to maintain
-string BuySymbols[]  = {"EURUSDm","GBPUSDm","NZDUSDm","AUDUSDm","DXYm"};
-string SellSymbols[] = {"USDCADm","USDCHFm","USDJPYm","USDSEKm"};
+extern int    MagicNumber      = 123456;     // 0 = close ALL orders
+extern double MaxOrders        = 50;
+extern bool   TradeOnNewBar    = true;
+extern bool   UseDXYFilter     = true;       // Turn DXY confirmation on/off
 
-double BuyLots  = 0.06;
-double SellLots = 0.04;
-
-// SL/TP in points (will be converted correctly per symbol)
-int BuySL_Points   = 300;
-int BuyTP_Points   = 70;
-int SellSL_Points  = 250;
-int SellTP_Points  = 85;
+string ButtonName = "EmergencyCloseButton";
 
 //+------------------------------------------------------------------+
-//| Helper: Safe OrderSend with error handling                       |
+//| Safe OrderSend                                                   |
 //+------------------------------------------------------------------+
 int SafeOrderSend(string symbol, int cmd, double volume, double price,
                   int slippage, double sl, double tp, string comment="")
 {
    if(volume <= 0) return -1;
-   
-   // Ensure symbol is in Market Watch
-   if(SymbolInfoInteger(symbol, SYMBOL_SELECT) == false)
-      if(!SymbolSelect(symbol, true))
-      {
-         Print("Failed to select symbol: ", symbol);
-         return -1;
-      }
-   
-   double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
+   if(!SymbolSelect(symbol, true)) return -1;
+
+   double point  = SymbolInfoDouble(symbol, SYMBOL_POINT);
    int    digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
-   
-   // Normalize everything
-   price = NormalizeDouble(price, digits);
-   sl    = (sl > 0)    ? NormalizeDouble(sl, digits)    : 0;
-   tp    = (tp > 0)    ? NormalizeDouble(tp, digits)    : 0;
-   volume = NormalizeDouble(volume, 2);   // most brokers use 2 decimals for lots
-   
-   int ticket = OrderSend(symbol, cmd, volume, price, slippage, sl, tp, comment, MagicNumber, 0, 
-                          (cmd==OP_BUY || cmd==OP_BUYSTOP)? clrGreen : clrRed);
-   
+
+   price  = NormalizeDouble(price, digits);
+   sl     = (sl > 0) ? NormalizeDouble(sl, digits) : 0;
+   tp     = (tp > 0) ? NormalizeDouble(tp, digits) : 0;
+   volume = NormalizeDouble(volume, 2);
+
+   color clr = (cmd == OP_BUY || cmd == OP_BUYSTOP) ? clrGreen : clrRed;
+
+   int ticket = OrderSend(symbol, cmd, volume, price, slippage, sl, tp,
+                          comment, MagicNumber, 0, clr);
+
    if(ticket < 0)
-   {
-      int err = GetLastError();
-      Print("OrderSend failed | Symbol=", symbol, " | Cmd=", cmd, " | Error=", err, " | ", ErrorDescription(err));
-   }
+      Print("OrderSend failed | Symbol=", symbol, " Error=", GetLastError());
    else
-      Print("Order opened successfully | Ticket=", ticket, " | Symbol=", symbol);
-   
+      Print("Order opened | Ticket=", ticket, " | ", comment);
+
    return ticket;
+}
+
+//+------------------------------------------------------------------+
+//| Safe Close All Orders                                            |
+//+------------------------------------------------------------------+
+int CloseAllOrders(int magic, int slippage = 10)
+{
+   int closed = 0;
+   for(int i = OrdersTotal()-1; i >= 0; i--)
+   {
+      if(!OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) continue;
+      if(magic != 0 && OrderMagicNumber() != magic) continue;
+
+      bool success = false;
+      switch(OrderType())
+      {
+         case OP_BUY:  success = OrderClose(OrderTicket(), OrderLots(), Bid, slippage, clrBlue); break;
+         case OP_SELL: success = OrderClose(OrderTicket(), OrderLots(), Ask, slippage, clrRed); break;
+         default:      success = OrderDelete(OrderTicket(), clrBlue); break;
+      }
+      if(success) closed++;
+   }
+   if(closed > 0) Print("Emergency close completed: ", closed, " orders/pendings");
+   return closed;
+}
+
+//+------------------------------------------------------------------+
+//| OnInit - Create Button                                           |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+   if(!ObjectCreate(0, ButtonName, OBJ_BUTTON, 0, 0, 0))
+   {
+      Print("Failed to create button. Error: ", GetLastError());
+      return INIT_FAILED;
+   }
+
+   ObjectSetInteger(0, ButtonName, OBJPROP_CORNER, CORNER_RIGHT_UPPER);
+   ObjectSetInteger(0, ButtonName, OBJPROP_XDISTANCE, 20);
+   ObjectSetInteger(0, ButtonName, OBJPROP_YDISTANCE, 20);
+   ObjectSetInteger(0, ButtonName, OBJPROP_XSIZE, 340);
+   ObjectSetInteger(0, ButtonName, OBJPROP_YSIZE, 40);
+   ObjectSetString(0, ButtonName, OBJPROP_TEXT, "🚨 CLOSE ALL ORDERS & PENDINGS");
+   ObjectSetInteger(0, ButtonName, OBJPROP_COLOR, clrWhite);
+   ObjectSetInteger(0, ButtonName, OBJPROP_BGCOLOR, clrRed);
+   ObjectSetInteger(0, ButtonName, OBJPROP_FONTSIZE, 11);
+   ObjectSetInteger(0, ButtonName, OBJPROP_SELECTABLE, false);
+
+   Print("EA initialized with Emergency Button + DXY Filter");
+   return INIT_SUCCEEDED;
+}
+
+//+------------------------------------------------------------------+
+//| OnDeinit                                                         |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+   ObjectsDeleteAll();
+}
+
+//+------------------------------------------------------------------+
+//| OnChartEvent - Button click                                      |
+//+------------------------------------------------------------------+
+void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
+{
+   if(id == CHARTEVENT_OBJECT_CLICK && sparam == ButtonName)
+      CloseAllOrders(MagicNumber, 10);
 }
 
 //+------------------------------------------------------------------+
@@ -67,80 +119,55 @@ int SafeOrderSend(string symbol, int cmd, double volume, double price,
 void OnTick()
 {
    static datetime lastBarTime = 0;
-   
-   // === Trade only on new bar (prevents spam) ===
-   if(TradeOnNewBar)
-   {
-      datetime currentBarTime = Time[0];
-      if(currentBarTime == lastBarTime) return;
-      lastBarTime = currentBarTime;
-   }
-   
-   if(OrdersTotal() >= MaxOrders) return;   // Global limit
-   
-   // --- Indicators & Prices ---
+   if(TradeOnNewBar && Time[0] == lastBarTime) return;
+   lastBarTime = Time[0];
+
+   if(OrdersTotal() >= MaxOrders) return;
+
    double ma = iMA(Symbol(), 0, 15, 0, MODE_SMA, PRICE_MEDIAN, 0);
-   
-   double currentPrice = Close[0];   // Better than Open[0] for current price
-   double lastPrice    = Close[1];
-   
-   // --- BUYING CONDITION (price below MA and rising) ---
-   if(currentPrice < ma && currentPrice > lastPrice)
+   double curr = Close[0];
+   double prev = Close[1];
+
+   bool bullishSignal = (curr < ma) && (curr > prev);
+   bool bearishSignal = (curr > ma) && (curr < prev);
+
+   // DXY Confirmation
+   bool dxyFalling = true, dxyRising = true;
+   if(UseDXYFilter)
    {
-      // Sell the "strong USD" pairs
-      for(int i=0; i<ArraySize(SellSymbols); i++)
+      double dxyCurr = iClose(DXY_Symbol, 0, 0);
+      double dxyPrev = iClose(DXY_Symbol, 0, 1);
+      dxyFalling = (dxyCurr < dxyPrev);
+      dxyRising  = (dxyCurr > dxyPrev);
+   }
+
+   // Bullish Signal → Buy weak USD (if DXY falling)
+   if(bullishSignal && (!UseDXYFilter || dxyFalling))
+   {
+      for(int i=0; i<ArraySize(WeakUSD_Symbols); i++)
       {
-         string sym = SellSymbols[i];
-         double bid = SymbolInfoDouble(sym, SYMBOL_BID);
-         double point = SymbolInfoDouble(sym, SYMBOL_POINT);
-         
-         SafeOrderSend(sym, OP_SELL, SellLots, bid, 3,
-                       bid + SellSL_Points * point,
-                       bid - SellTP_Points * point,
-                       "Sell USD");
-      }
-      
-      // Buy the "weak USD" pairs
-      for(int i=0; i<ArraySize(BuySymbols); i++)
-      {
-         string sym = BuySymbols[i];
+         string sym = WeakUSD_Symbols[i];
          double ask = SymbolInfoDouble(sym, SYMBOL_ASK);
-         double point = SymbolInfoDouble(sym, SYMBOL_POINT);
-         
-         SafeOrderSend(sym, OP_BUY, BuyLots, ask, 3,
-                       ask - BuySL_Points * point,
-                       ask + BuyTP_Points * point,
-                       "Buy vs USD");
+         double pt  = SymbolInfoDouble(sym, SYMBOL_POINT);
+         SafeOrderSend(sym, OP_BUY, WeakLots, ask, 3,
+                       ask - WeakBuy_SL_Points*pt,
+                       ask + WeakBuy_TP_Points*pt,
+                       "WeakUSD_Buy_DXYconf");
       }
    }
-   
-   // --- SELLING CONDITION (price above MA and falling) ---
-   if(currentPrice > ma && currentPrice < lastPrice)
+
+   // Bearish Signal → Sell strong USD (if DXY rising)
+   if(bearishSignal && (!UseDXYFilter || dxyRising))
    {
-      // Buy the "strong USD" pairs
-      for(int i=0; i<ArraySize(SellSymbols); i++)
+      for(int i=0; i<ArraySize(StrongUSD_Symbols); i++)
       {
-         string sym = SellSymbols[i];
-         double ask = SymbolInfoDouble(sym, SYMBOL_ASK);
-         double point = SymbolInfoDouble(sym, SYMBOL_POINT);
-         
-         SafeOrderSend(sym, OP_BUY, SellLots, ask, 3,
-                       ask - SellSL_Points * point,     // corrected logic
-                       ask + SellTP_Points * point,
-                       "Buy USD");
-      }
-      
-      // Sell the "weak USD" pairs
-      for(int i=0; i<ArraySize(BuySymbols); i++)
-      {
-         string sym = BuySymbols[i];
+         string sym = StrongUSD_Symbols[i];
          double bid = SymbolInfoDouble(sym, SYMBOL_BID);
-         double point = SymbolInfoDouble(sym, SYMBOL_POINT);
-         
-         SafeOrderSend(sym, OP_SELL, BuyLots, bid, 3,
-                       bid + BuySL_Points * point,
-                       bid - BuyTP_Points * point,      // note: you had -90 before
-                       "Sell vs USD");
+         double pt  = SymbolInfoDouble(sym, SYMBOL_POINT);
+         SafeOrderSend(sym, OP_SELL, StrongLots, bid, 3,
+                       bid + StrongSell_SL_Points*pt,
+                       bid - StrongSell_TP_Points*pt,
+                       "StrongUSD_Sell_DXYconf");
       }
    }
 }
