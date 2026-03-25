@@ -17,7 +17,7 @@ All EAs have been refactored with modern MQL4 best practices:
 
 ---
 
-## 🚀 Main Expert Advisor
+## Main Expert Advisor
 
 ### **Momentum Multi-Pair Trader with Emergency Close** (Recommended)
 
@@ -30,7 +30,7 @@ All EAs have been refactored with modern MQL4 best practices:
 **Key Features**  
 - Trades only on new bar (no order spam).  
 - Proper per-symbol `_Point` and `_Digits` handling (safe for JPY pairs).  
-- **Large red emergency button** on the chart: **"🚨 CLOSE ALL ORDERS & PENDINGS"**.  
+- **Large red emergency button** on the chart: **" CLOSE ALL ORDERS & PENDINGS"**.  
 - Button safely closes market orders and deletes pending orders with retry logic for common errors (129, 135, 136, 146).  
 - Filters by Magic Number (set to `0` to close everything on the account).  
 - Full logging and error handling.
@@ -48,7 +48,7 @@ Top-right corner of the chart. Click once to trigger emergency close.
 
 ---
 
-## ⚙️ Installation
+## Installation
 
 1. Download or clone the repository.
 2. Open MetaTrader 4 → **File → Open Data Folder**.
@@ -61,7 +61,7 @@ Top-right corner of the chart. Click once to trigger emergency close.
 
 ---
 
-## ⚠️ Risk Warning & Recommendations
+## Risk Warning & Recommendations
 
 - **Always test on a demo account** for at least 4–8 weeks before going live.  
 - Start with small lot sizes (0.01 – 0.04).  
@@ -72,7 +72,7 @@ Top-right corner of the chart. Click once to trigger emergency close.
 
 ---
 
-## 🔧 Common Input Parameters
+## Common Input Parameters
 
 | Parameter          | Default   | Description |
 |--------------------|-----------|-----------|
@@ -88,14 +88,14 @@ Top-right corner of the chart. Click once to trigger emergency close.
 
 ---
 
-## 📘 Documentation
+## Documentation
 
 - Full parameter explanations and strategy rules → `Users_manual.pdf`
 - Older notes → `instructions.txt`
 
 ---
 
-## 🛠️ Planned Improvements
+## Planned Improvements
 
 - DXY used strictly as confirmation filter (no trading DXY)
 - Dynamic lot sizing based on account risk %
@@ -106,16 +106,7 @@ Top-right corner of the chart. Click once to trigger emergency close.
 
 ---
 
-## 👤 Author
-
-**blaQPablo88** 
-MQL4 Developer & Forex Automation Enthusiast  
-
-GitHub: [blaQPablo88](https://github.com/blaQPablo88/MetaBots)
-
----
-
-## 📜 License
+## License
 
 This project is licensed under the **MIT License** – free to use, modify, and distribute with attribution.
 
@@ -126,4 +117,4 @@ The emergency close button gives you peace of mind during volatile moves.
 
 If you need further customizations (DXY filter, dynamic lots, etc.), feel free to open an issue or contact me.
 
-**Trade safe!** 🚀
+**Trade safe!**
